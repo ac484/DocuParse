@@ -2,13 +2,14 @@
 
 import { useActionState } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { UploadCloud, File, Loader2 } from "lucide-react";
+import { UploadCloud, File, Loader2, Cpu } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { extractDataFromDocument } from "@/app/actions";
 import { WorkItemsTable } from "@/components/work-items-table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 
 const initialState = {
@@ -118,6 +119,12 @@ export default function Home() {
                         {state.fileName}
                         </CardDescription>
                     </div>
+                    {state.data.totalTokens > 0 && (
+                      <Badge variant="secondary" className="flex items-center gap-2">
+                          <Cpu className="w-4 h-4" />
+                          <span>{state.data.totalTokens.toLocaleString()} tokens</span>
+                      </Badge>
+                    )}
                   </div>
               </CardHeader>
               <CardContent>

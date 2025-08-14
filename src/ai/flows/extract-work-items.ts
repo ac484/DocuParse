@@ -29,7 +29,8 @@ const ExtractWorkItemsOutputSchema = z.object({
       unitPrice: z.number().describe('The unit price of the work item.'),
     })
   ).
-  describe('A list of extracted work items with their quantities, prices, and unit prices.')
+  describe('A list of extracted work items with their quantities, prices, and unit prices.'),
+  totalTokens: z.number().describe('The total number of tokens used for the operation.'),
 });
 export type ExtractWorkItemsOutput = z.infer<typeof ExtractWorkItemsOutputSchema>;
 
@@ -60,7 +61,14 @@ const extractWorkItemsFlow = ai.defineFlow(
     outputSchema: ExtractWorkItemsOutputSchema,
   },
   async input => {
-    const {output} = await extractWorkItemsPrompt(input);
-    return output!;
+    const result = await extractWorkItemsPrompt(input);
+    const output = result.output;
+    if (!output) {
+      throw new Error('No output from AI');
+    }
+    return {
+        workItems: output.workItems,
+        totalTokens: result.usage?.totalTokens || 0,
+    };
   }
 );
