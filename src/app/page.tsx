@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { UploadCloud, File, Loader2 } from "lucide-react";
 
@@ -18,7 +18,7 @@ const initialState = {
 };
 
 export default function Home() {
-  const [state, formAction] = useFormState(extractDataFromDocument, initialState);
+  const [state, formAction] = useActionState(extractDataFromDocument, initialState);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
