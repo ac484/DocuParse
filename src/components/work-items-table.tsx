@@ -29,22 +29,28 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
 
   const handleInputChange = (index: number, field: keyof WorkItem, value: string | number) => {
     const newData = [...data];
-    let updatedItem = { ...newData[index] };
+    const updatedItem = { ...newData[index] };
     
     const numericValue = typeof value === 'string' ? parseFloat(value) : value;
 
     if (field === 'item') {
-        updatedItem[field] = String(value);
+        updatedItem.item = String(value);
     } else if (!isNaN(numericValue) && (field === 'quantity' || field === 'price' || field === 'unitPrice')) {
-      updatedItem[field] = numericValue;
+        (updatedItem[field] as number) = numericValue;
+    } else {
+        // Handle cases where input might be cleared, default to 0
+        (updatedItem[field] as number) = 0;
     }
     
-    if (field === 'quantity' || field === 'price') {
-      if (updatedItem.quantity > 0) {
-        updatedItem.unitPrice = parseFloat((updatedItem.price / updatedItem.quantity).toFixed(2));
-      }
-    } else if (field === 'unitPrice') {
-        updatedItem.price = parseFloat((updatedItem.unitPrice * updatedItem.quantity).toFixed(2));
+    // Automatic calculation logic
+    if (field === 'quantity' || field === 'unitPrice') {
+        updatedItem.price = parseFloat((updatedItem.quantity * updatedItem.unitPrice).toFixed(2));
+    } else if (field === 'price') {
+        if (updatedItem.quantity > 0) {
+            updatedItem.unitPrice = parseFloat((updatedItem.price / updatedItem.quantity).toFixed(2));
+        } else {
+            updatedItem.unitPrice = 0; // Avoid division by zero
+        }
     }
 
     newData[index] = updatedItem;
