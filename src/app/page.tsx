@@ -10,6 +10,8 @@ import { extractDataFromDocument } from "@/app/actions";
 import { WorkItemsTable } from "@/components/work-items-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 
 const initialState = {
@@ -128,6 +130,24 @@ export default function Home() {
                   </div>
               </CardHeader>
               <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="doc-id">編號</Label>
+                      <Input id="doc-id" placeholder="Document ID" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="doc-name">名稱</Label>
+                      <Input id="doc-name" placeholder="Document Name" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client-name">客戶</Label>
+                      <Input id="client-name" placeholder="Client Name" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client-rep">客戶代表</Label>
+                      <Input id="client-rep" placeholder="Client Representative" />
+                    </div>
+                </div>
                 <WorkItemsTable initialData={state.data.workItems} />
               </CardContent>
             </Card>
