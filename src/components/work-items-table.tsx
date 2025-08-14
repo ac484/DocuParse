@@ -112,6 +112,7 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12 text-center">#</TableHead>
               <TableHead className="w-[50%]">Item Description</TableHead>
               <TableHead className="text-right w-[120px]">Quantity</TableHead>
               <TableHead className="text-right w-[150px]">Unit Price</TableHead>
@@ -122,6 +123,7 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
           <TableBody>
             {data.map((row, index) => (
               <TableRow key={index} className="hover:bg-muted/50">
+                <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
                 <TableCell className="p-1">
                   <Input
                     value={row.item}
