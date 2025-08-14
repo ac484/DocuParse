@@ -43,7 +43,7 @@ const extractWorkItemsPrompt = ai.definePrompt({
   output: {schema: ExtractWorkItemsOutputSchema},
   prompt: `You are an expert AI assistant specialized in parsing documents like contracts, quotes, and estimates to extract work items, quantities, prices, and unit prices.
 
-  Analyze the provided document and extract all work items, including their quantities, prices, and calculate unit prices, using the following document data.
+  Analyze the provided document and extract every single work item you can find. For each item, extract its description, quantity, total price, and calculate the unit price. Use the following document data.
 
   Document: {{media url=documentDataUri}}
   
