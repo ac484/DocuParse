@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { FileJson, FileText, Trash2, Plus, Percent, Copy } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileJson, FileText, Trash2, Plus } from 'lucide-react';
 import {
   Table,
   TableHeader,
@@ -14,14 +13,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { ExtractWorkItemsOutput } from '@/ai/flows/extract-work-items';
-import { Separator } from './ui/separator';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-
 
 type WorkItem = ExtractWorkItemsOutput['workItems'][0];
 
@@ -31,129 +22,44 @@ interface WorkItemsTableProps {
 
 export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
   const [data, setData] = useState<WorkItem[]>(initialData);
-  const [previewData, setPreviewData] = useState<WorkItem[]>(initialData);
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
-  const [percentage, setPercentage] = useState('');
-  const [adjustmentTarget, setAdjustmentTarget] = useState<'unitPrice' | 'totalPrice'>('unitPrice');
-  const [roundAfterAdjustment, setRoundAfterAdjustment] = useState(false);
-  const [justUpdatedRows, setJustUpdatedRows] = useState<number[]>([]);
-  const { toast } = useToast();
-
 
   useEffect(() => {
     setData(initialData);
-    setPreviewData(initialData);
-    setSelectedRows([]);
-    setPercentage('');
   }, [initialData]);
 
-  useEffect(() => {
-    const percentValue = parseFloat(percentage);
-    if (isNaN(percentValue) || percentage.trim() === '' || percentage.endsWith('.')) {
-        setPreviewData(data);
-        return;
-    }
-
-    const multiplier = 1 + percentValue / 100;
-    const newPreviewData = data.map((item, index) => {
-        if (selectedRows.includes(index)) {
-            const newItem = { ...item };
-            let newUnitPrice, newPrice;
-
-            if (adjustmentTarget === 'unitPrice') {
-                newUnitPrice = item.unitPrice * multiplier;
-                newPrice = newUnitPrice * item.quantity;
-            } else { // adjustmentTarget === 'totalPrice'
-                newPrice = item.price * multiplier;
-                newUnitPrice = item.quantity > 0 ? newPrice / item.quantity : 0;
-            }
-            
-            if (roundAfterAdjustment) {
-                newItem.unitPrice = Math.round(newUnitPrice);
-                newItem.price = Math.round(newPrice);
-            } else {
-                newItem.unitPrice = parseFloat(newUnitPrice.toFixed(2));
-                newItem.price = parseFloat(newPrice.toFixed(2));
-            }
-
-            return newItem;
-        }
-        return item;
-    });
-    setPreviewData(newPreviewData);
-  }, [percentage, selectedRows, adjustmentTarget, data, roundAfterAdjustment]);
-
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRows(data.map((_, index) => index));
-    } else {
-      setSelectedRows([]);
-    }
-  };
-
-  const handleSelectRow = (index: number, checked: boolean) => {
-    if (checked) {
-      setSelectedRows([...selectedRows, index]);
-    } else {
-      setSelectedRows(selectedRows.filter((i) => i !== index));
-    }
-  };
-
-  const handleApplyPercentage = () => {
-    setData(previewData);
-    setPercentage('');
-    setJustUpdatedRows([...selectedRows]);
-    setTimeout(() => {
-      setJustUpdatedRows([]);
-    }, 1000); // Remove flash effect after 1s
-  };
-
-  const handleInputChange = (index: number, field: keyof WorkItem, value: string) => {
-    const updateData = (currentData: WorkItem[]) => {
-      const newData = [...currentData];
-      const updatedItem = { ...newData[index] };
-      
-      if (field === 'item') {
-        updatedItem.item = value;
-      } else {
-        const numericValue = parseFloat(value);
-        const safeValue = isNaN(numericValue) ? 0 : numericValue;
-
-        if (field === 'quantity') {
-          updatedItem.quantity = safeValue;
-        } else if (field === 'price') {
-          updatedItem.price = safeValue;
-        } else if (field === 'unitPrice') {
-          updatedItem.unitPrice = safeValue;
-        }
-        
-        if (field === 'quantity' || field === 'unitPrice') {
-          const quantity = field === 'quantity' ? safeValue : updatedItem.quantity;
-          const unitPrice = field === 'unitPrice' ? safeValue : updatedItem.unitPrice;
-          updatedItem.price = parseFloat((quantity * unitPrice).toFixed(2));
-        } else if (field === 'price') {
-          if (updatedItem.quantity > 0) {
-              updatedItem.unitPrice = parseFloat((safeValue / updatedItem.quantity).toFixed(2));
-          } else {
-              updatedItem.unitPrice = 0;
-          }
-        }
-      }
-      
-      newData[index] = updatedItem;
-      return newData;
-    };
+  const handleInputChange = (index: number, field: keyof WorkItem, value: string | number) => {
+    const newData = [...data];
+    const updatedItem = { ...newData[index] };
     
-    const newData = updateData(data);
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+
+    if (field === 'item') {
+        updatedItem.item = String(value);
+    } else if (!isNaN(numericValue) && (field === 'quantity' || field === 'price' || field === 'unitPrice')) {
+        (updatedItem[field] as number) = numericValue;
+    } else {
+        // Handle cases where input might be cleared, default to 0
+        (updatedItem[field] as number) = 0;
+    }
+    
+    // Automatic calculation logic
+    if (field === 'quantity' || field === 'unitPrice') {
+        updatedItem.price = parseFloat((updatedItem.quantity * updatedItem.unitPrice).toFixed(2));
+    } else if (field === 'price') {
+        if (updatedItem.quantity > 0) {
+            updatedItem.unitPrice = parseFloat((updatedItem.price / updatedItem.quantity).toFixed(2));
+        } else {
+            updatedItem.unitPrice = 0; // Avoid division by zero
+        }
+    }
+
+    newData[index] = updatedItem;
     setData(newData);
-    setPreviewData(newData);
   };
   
   const handleRemoveRow = (index: number) => {
     const newData = data.filter((_, i) => i !== index);
     setData(newData);
-    setPreviewData(newData);
   };
 
   const handleAddRow = () => {
@@ -163,14 +69,8 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
       price: 0,
       unitPrice: 0,
     };
-    const newData = [...data, newRow];
-    setData(newData);
-    setPreviewData(newData);
+    setData([...data, newRow]);
   };
-
-  const totalAmount = useMemo(() => {
-    return previewData.reduce((sum, item) => sum + (item.price || 0), 0);
-  }, [previewData]);
   
   const exportToCSV = () => {
     const headers = ['Item', 'Quantity', 'Unit Price', 'Price'];
@@ -198,20 +98,6 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
     link.click();
     document.body.removeChild(link);
   };
-  
-  const handleColumnCopy = (columnKey: keyof WorkItem, columnName: string) => {
-    if (navigator.clipboard) {
-      const columnData = data.map(row => row[columnKey]).join('\n');
-      navigator.clipboard.writeText(columnData).then(() => {
-        toast({
-            title: "Copied to clipboard!",
-            description: `The "${columnName}" column has been copied.`
-        })
-      });
-    }
-  };
-
-  const currentData = previewData;
 
   if (data.length === 0) {
     return (
@@ -228,117 +114,22 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
 
   return (
     <div>
-      {selectedRows.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 my-4 border rounded-lg bg-card">
-          <div className="flex-grow">
-            <h3 className="font-semibold">{selectedRows.length} item(s) selected</h3>
-            <p className="text-sm text-muted-foreground">Apply a percentage change to selected items.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-             <div className="flex items-center space-x-2">
-                <Label htmlFor="adjustment-target" className={adjustmentTarget === 'totalPrice' ? 'text-muted-foreground' : ''}>Unit Price</Label>
-                <Switch
-                    id="adjustment-target"
-                    checked={adjustmentTarget === 'totalPrice'}
-                    onCheckedChange={(checked) => setAdjustmentTarget(checked ? 'totalPrice' : 'unitPrice')}
-                />
-                <Label htmlFor="adjustment-target" className={adjustmentTarget === 'unitPrice' ? 'text-muted-foreground' : ''}>Total Price</Label>
-            </div>
-            <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <Input
-                    type="number"
-                    placeholder="e.g. 10 or -5"
-                    value={percentage}
-                    onChange={(e) => setPercentage(e.target.value)}
-                    className="w-32"
-                    step="0.1"
-                    />
-                    <Button onClick={handleApplyPercentage}>
-                    <Percent className="mr-2 h-4 w-4" />
-                    Apply
-                    </Button>
-                </div>
-            </div>
-            <div className="flex items-center space-x-2">
-                <Checkbox id="round-checkbox" checked={roundAfterAdjustment} onCheckedChange={(checked) => setRoundAfterAdjustment(checked as boolean)} />
-                <Label htmlFor="round-checkbox" className="text-sm font-medium">抹去小數點</Label>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12 text-center px-4">
-                 <Checkbox
-                  checked={selectedRows.length === data.length && data.length > 0}
-                  onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                  aria-label="Select all rows"
-                />
-              </TableHead>
-              <TableHead className="w-12 text-center"># (%)</TableHead>
-              <TableHead className="w-[50%]">
-                <div className='flex items-center gap-1'>
-                    <span>Item Description</span>
-                    <Button variant="ghost" size="icon" className='h-6 w-6' onClick={() => handleColumnCopy('item', 'Item Description')}>
-                        <Copy className='h-3 w-3' />
-                    </Button>
-                </div>
-              </TableHead>
-              <TableHead className="text-right w-[120px]">
-                <div className='flex items-center justify-end gap-1'>
-                    <span>Quantity</span>
-                     <Button variant="ghost" size="icon" className='h-6 w-6' onClick={() => handleColumnCopy('quantity', 'Quantity')}>
-                        <Copy className='h-3 w-3' />
-                    </Button>
-                </div>
-              </TableHead>
-              <TableHead className="text-right w-[150px]">
-                 <div className='flex items-center justify-end gap-1'>
-                    <span>Unit Price</span>
-                    <Button variant="ghost" size="icon" className='h-6 w-6' onClick={() => handleColumnCopy('unitPrice', 'Unit Price')}>
-                        <Copy className='h-3 w-3' />
-                    </Button>
-                </div>
-              </TableHead>
-              <TableHead className="text-right w-[150px]">
-                 <div className='flex items-center justify-end gap-1'>
-                    <span>Total Price</span>
-                    <Button variant="ghost" size="icon" className='h-6 w-6' onClick={() => handleColumnCopy('price', 'Total Price')}>
-                        <Copy className='h-3 w-3' />
-                    </Button>
-                </div>
-              </TableHead>
+              <TableHead className="w-12 text-center">#</TableHead>
+              <TableHead className="w-[50%]">Item Description</TableHead>
+              <TableHead className="text-right w-[120px]">Quantity</TableHead>
+              <TableHead className="text-right w-[150px]">Unit Price</TableHead>
+              <TableHead className="text-right w-[150px]">Total Price</TableHead>
               <TableHead className="w-12 p-2"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentData.map((row, index) => {
-              const percentageOfTotal = totalAmount > 0 ? (row.price / totalAmount) * 100 : 0;
-              const isJustUpdated = justUpdatedRows.includes(index);
-              
-              return (
-              <TableRow 
-                key={index} 
-                className={cn("hover:bg-muted/50", isJustUpdated && 'flash-animation')}
-                data-state={selectedRows.includes(index) ? 'selected' : ''}>
-                <TableCell className="text-center px-4">
-                   <Checkbox
-                    checked={selectedRows.includes(index)}
-                    onCheckedChange={(checked) => handleSelectRow(index, checked as boolean)}
-                    aria-label={`Select row ${index + 1}`}
-                  />
-                </TableCell>
-                <TableCell className="text-center text-muted-foreground">
-                    <div className='flex items-center justify-center gap-2'>
-                        <span>{index + 1}</span>
-                         {percentageOfTotal > 0 && (
-                           <Badge variant="outline" className='text-xs font-normal'>{percentageOfTotal.toFixed(1)}%</Badge>
-                         )}
-                    </div>
-                </TableCell>
+            {data.map((row, index) => (
+              <TableRow key={index} className="hover:bg-muted/50">
+                <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
                 <TableCell className="p-1">
                   <Input
                     value={row.item}
@@ -379,21 +170,9 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
                     </Button>
                 </TableCell>
               </TableRow>
-            )})}
+            ))}
           </TableBody>
         </Table>
-      </div>
-      
-      <div className="flex justify-end items-center mt-4">
-        <div className="w-full max-w-xs space-y-2">
-            <Separator />
-            <div className="flex justify-between items-center">
-                <span className="font-semibold text-lg">Total</span>
-                <span className="font-bold text-xl text-primary">
-                    ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-            </div>
-        </div>
       </div>
 
       <div className="flex justify-between items-center mt-6">
@@ -415,5 +194,3 @@ export function WorkItemsTable({ initialData }: WorkItemsTableProps) {
     </div>
   );
 }
-
-    

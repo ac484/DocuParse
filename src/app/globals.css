@@ -66,15 +66,4 @@
   body {
     @apply bg-background text-foreground;
   }
-  .flash-animation {
-    animation: flash 1s ease-out;
-  }
-  @keyframes flash {
-    0% {
-      background-color: hsl(var(--primary) / 0.2);
-    }
-    100% {
-      background-color: transparent;
-    }
-  }
 }
